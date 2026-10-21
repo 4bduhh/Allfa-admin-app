@@ -1,6 +1,5 @@
-const CACHE = "allfa-esevai-v2";
-const SHELL = ["index.html","store.css","store.js","manifest.json","icon-192.png","icon-512.png","allfa-logo-purple.png","favicon.png",
-  "admin.html","admin.css","admin.js","admin-manifest.json","admin-icon-192.png","admin-icon-512.png","allfa-logo.png","admin-favicon.png"];
+const CACHE = "allfa-admin-v1";
+const SHELL = ["./","index.html","admin.css","admin.js","admin-manifest.json","admin-icon-192.png","admin-icon-512.png","allfa-logo.png","admin-favicon.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(
@@ -29,7 +28,7 @@ self.addEventListener("fetch", e => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(req, copy));
         return res;
-      }).catch(() => caches.match(req).then(r => r || caches.match("store.html")))
+      }).catch(() => caches.match(req).then(r => r || caches.match("./")))
     );
     return;
   }
