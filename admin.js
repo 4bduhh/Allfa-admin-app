@@ -5,8 +5,8 @@ const uid=()=>Math.random().toString(36).slice(2,8),dstr=t=>new Date(t).toLocale
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
 const sum=(a,f)=>a.reduce((n,x)=>n+f(x),0),due=b=>b.total-b.paid,hash=s=>btoa(unescape(encodeURIComponent("es:"+s)));
 let db,prices,exps,range="week",pq="",cd=null,cm=new Date().getMonth(),cy=new Date().getFullYear(),cyy=cy;
-function reload(){db=load(KEY,{bills:[],apps:[],services:[]});prices=load(PK,null);if(!prices){prices=db.services||[];if(prices.length)savP()}exps=load(EK,[]);if(!Array.isArray(db.tpl)||!db.tpl.length)db.tpl=TPL()}
-const savP=()=>localStorage.setItem(PK,JSON.stringify(prices)),savE=()=>localStorage.setItem(EK,JSON.stringify(exps));
+function reload(){db=load(KEY,{bills:[],apps:[],services:[]});prices=load(PK,null);if(!prices){prices=db.services||[]}exps=load(EK,[]);if(!Array.isArray(db.tpl)||!db.tpl.length)db.tpl=TPL()}
+const savP=()=>{localStorage.setItem(PK,JSON.stringify(prices));cfgPush()},savE=()=>{localStorage.setItem(EK,JSON.stringify(exps));expPush()};
 const TPL=()=>[
  {name:"Income Certificate",docs:["Aadhaar card","Ration / Smart card","Passport photo","Income self-declaration","Mobile no. linked to Aadhaar"],gov:0,fee:100,days:15,renew:12},
  {name:"Community Certificate",docs:["Aadhaar card","Ration / Smart card","Father's community certificate","School TC / marksheet","Passport photo"],gov:0,fee:100,days:15,renew:0},
@@ -18,7 +18,7 @@ const TPL=()=>[
  {name:"Ration Card",docs:["Aadhaar of all members","Address proof","Passport photo","Gas connection proof"],gov:0,fee:100,days:30,renew:0},
  {name:"Patta / Chitta",docs:["Survey no. / old patta copy","Aadhaar card","Land document copy"],gov:0,fee:100,days:7,renew:0}];
 const RN=[["No reminder",0],["After 6 months",6],["After 1 year",12],["After 2 years",24],["After 3 years",36],["After 5 years",60]];
-const savT=()=>{const cur=load(KEY,{});cur.tpl=db.tpl;localStorage.setItem(KEY,JSON.stringify(cur))};
+const savT=()=>{const cur=load(KEY,{});cur.tpl=db.tpl;localStorage.setItem(KEY,JSON.stringify(cur));cfgPush()};
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2500)};
 const emp=(i,t,s)=>`<div class="empty"><i data-lucide="${i}"></i><b>${t}</b>${s}</div>`;
 const tbl=(h,rows,e)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th class="${x[0]==="#"?"n":""}">${x.replace("#","")}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:e;
@@ -93,7 +93,7 @@ function expPg(){
   $("#el").innerHTML=tbl(["Date","Category","Note","#Amount",""],exps.map(e=>`<tr><td>${e.date}</td><td>${esc(e.cat)}</td><td>${esc(e.note||"–")}</td><td class="n"><b>${money(e.amt)}</b></td><td class="n"><button class="btn sm dng" data-x="${e.id}">Delete</button></td></tr>`),emp("wallet","No expenses","Add costs to see your real profit."));
   $("#el").onclick=e=>{const x=e.target.closest("[data-x]");if(x&&confirm("Delete this expense?")){exps=exps.filter(y=>y.id!==x.dataset.x);savE();expPg();ic()}};
 }
-const P={overview:["Overview",overview,["Export bills CSV",exportCsv,"download"]],bills:["All bills",bills,["Export CSV",exportCsv,"download"]],prices:["Price list",pricesPg,["Add service",()=>svcForm(),"plus"]],docs:["Required documents",docsPg,["Add service documents",()=>tplForm(),"plus"]],expenses:["Expenses",expPg,["Add expense",addExp,"plus"]]};
+const P={overview:["Overview",overview,["Export bills CSV",exportCsv,"download"]],bills:["All bills",bills,["Export CSV",exportCsv,"download"]],prices:["Price list",pricesPg,["Add service",()=>svcForm(),"plus"]],docs:["Required documents",docsPg,["Add service documents",()=>tplForm(),"plus"]],expenses:["Expenses",expPg,["Add expense",addExp,"plus"]],staff:["Staff logins",staffPg,["Add staff",()=>staffAdd(),"plus"]]};
 function go(){
   reload();const k=location.hash.slice(1),p=P[k]?k:"overview",[t,fn,b]=P[p];
   document.querySelectorAll("nav a[data-page]").forEach(a=>a.classList.toggle("on",a.dataset.page===p));
@@ -112,40 +112,141 @@ function gsearch(){
   g.classList.add("open");ic();
 }
 function gopen(n){const r=gl[n];if(!r)return;pq=r.q||"";$("#gq").value="";$("#gres").classList.remove("open");location.hash=r.h;go()}
-const AK="esevaiPro.adminAcct",SK="esAdmin",RK="esAdminKeep";
-async function hp(p){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode("es:"+p));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch{return hash(p)}}
-const authed=()=>sessionStorage.getItem(SK)||localStorage.getItem(RK);
+/* ===== SUPABASE: admin login + cloud data + staff manager ===== */
+const SB_URL="https://vtcnzhzdwycqmhepsfxt.supabase.co",SB_KEY="sb_publishable_LIM_hs_jBcn0MC9cdIvBYw_Z-VoN2R9";
+const AUK="esevaiAdmin.auth",CT="esevaiAdmin.cfgTs",ET="esevaiAdmin.expTs",DT="esevaiAdmin.dirty";
+let auth=null;
+function loadAuth(){try{auth=JSON.parse(localStorage.getItem(AUK))}catch{auth=null}}
+function setSession(j){auth={access:j.access_token,refresh:j.refresh_token,exp:Date.now()+Math.max(60,(j.expires_in||3600)-60)*1000};localStorage.setItem(AUK,JSON.stringify(auth))}
+const sbAuth=(path,body)=>fetch(SB_URL+"/auth/v1/"+path,{method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},body:JSON.stringify(body)});
+const authed=()=>!!auth;
+function signOut(){auth=null;localStorage.removeItem(AUK);location.reload()}
+async function token(){
+  if(!auth)return null;
+  if(Date.now()<auth.exp)return auth.access;
+  try{
+    const r=await sbAuth("token?grant_type=refresh_token",{refresh_token:auth.refresh});
+    if(r.status>=400&&r.status<500){signOut();return null}
+    if(!r.ok)return null;
+    setSession(await r.json());return auth.access
+  }catch{return null}
+}
+async function hdr(){const t=await token();return t?{apikey:SB_KEY,Authorization:"Bearer "+t,"Content-Type":"application/json"}:null}
+const dirty=()=>{try{return JSON.parse(localStorage.getItem(DT))||{}}catch{return{}}};
+const setDirty=(id,v)=>{const d=dirty();v?d[id]=1:delete d[id];localStorage.setItem(DT,JSON.stringify(d))};
+async function upsert(id,data){
+  try{
+    const h=await hdr();if(!h)throw 0;
+    const r=await fetch(SB_URL+"/rest/v1/app_data?on_conflict=id",{method:"POST",headers:{...h,Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({id,data,updated_at:new Date().toISOString()})});
+    if(!r.ok)throw 0;setDirty(id,0)
+  }catch{setDirty(id,1)}
+}
+let cfgT=null,expT=null;
+function cfgPush(){const ts=Date.now();localStorage.setItem(CT,ts);setDirty("allfa-config",1);clearTimeout(cfgT);cfgT=setTimeout(()=>{cfgT=null;upsert("allfa-config",{prices,tpl:db.tpl,_ts:ts})},600)}
+function expPush(){const ts=Date.now();localStorage.setItem(ET,ts);setDirty("allfa-expenses",1);clearTimeout(expT);expT=setTimeout(()=>{expT=null;upsert("allfa-expenses",{list:exps,_ts:ts})},600)}
+let pulling=false;
+async function cloudPull(){
+  if(pulling||!auth||cfgT||expT)return;pulling=true;
+  try{
+    const h=await hdr();if(!h)return;
+    const r=await fetch(SB_URL+"/rest/v1/app_data?id=in.(allfa-main,allfa-config,allfa-expenses)&select=id,data",{headers:h,cache:"no-store"});
+    if(!r.ok)throw 0;
+    const rows=Object.fromEntries((await r.json()).map(x=>[x.id,x.data||{}]));
+    let changed=false,tpl=null;const dd=dirty();
+    /* prices + document templates (admin owns these) */
+    const c=rows["allfa-config"],clts=+localStorage.getItem(CT)||0;
+    if(!c){if(prices&&prices.length||(db&&db.tpl&&db.tpl.length)){cfgPush()}}
+    else if(dd["allfa-config"]||clts>(+c._ts||0)){upsert("allfa-config",{prices:prices||c.prices,tpl:(db&&db.tpl)||c.tpl,_ts:clts||Date.now()})}
+    else if((+c._ts||0)>clts){
+      if(Array.isArray(c.prices)){localStorage.setItem(PK,JSON.stringify(c.prices))}
+      if(Array.isArray(c.tpl)&&c.tpl.length)tpl=c.tpl;
+      localStorage.setItem(CT,+c._ts||0);changed=true
+    }
+    /* expenses (owner only) */
+    const e=rows["allfa-expenses"],elts=+localStorage.getItem(ET)||0;
+    if(!e){if(exps&&exps.length)expPush()}
+    else if(dd["allfa-expenses"]||elts>(+e._ts||0)){upsert("allfa-expenses",{list:exps,_ts:elts||Date.now()})}
+    else if((+e._ts||0)>elts){localStorage.setItem(EK,JSON.stringify(e.list||[]));localStorage.setItem(ET,+e._ts||0);changed=true}
+    /* bills / applications written by store staff (read-only here) */
+    const m=rows["allfa-main"];
+    if(m&&Object.keys(m).length){
+      const cur=load(KEY,{}),nm={...m};
+      nm.tpl=tpl||(cur.tpl&&cur.tpl.length?cur.tpl:m.tpl);
+      const a=JSON.stringify(nm);
+      if(a!==localStorage.getItem(KEY)){localStorage.setItem(KEY,a);changed=true}
+    }else if(tpl){const cur=load(KEY,{});cur.tpl=tpl;localStorage.setItem(KEY,JSON.stringify(cur))}
+    if(changed&&$("#modal").className.indexOf("open")<0)go();
+    const t=$("#today");if(t)t.title="Cloud synced"
+  }catch{const t=$("#today");if(t)t.title="Offline - will sync later"}
+  finally{pulling=false}
+}
+
+/* staff manager (talks to the staff-admin Edge Function) */
+async function staffApi(action,p={}){
+  const h=await hdr();if(!h)throw new Error("Not signed in");
+  const r=await fetch(SB_URL+"/functions/v1/staff-admin",{method:"POST",headers:h,body:JSON.stringify({action,...p})});
+  let j={};try{j=await r.json()}catch{}
+  if(!r.ok)throw new Error(j.error||("Server error "+r.status));return j
+}
+async function staffPg(){
+  $("#view").innerHTML=`<div class="panel"><div class="ph"><div><h2>Staff logins</h2><p>Staff sign in to the store app with these email logins. You can add staff, change passwords and remove access here.</p></div></div><div id="sl2"><div class="empty">Loading…</div></div></div>`;
+  try{
+    const {users}=await staffApi("list");
+    $("#sl2").innerHTML=tbl(["Email","Role","Last login",""],users.map(u=>`<tr><td><b>${esc(u.email)}</b></td><td><span class="tag ${u.role==="admin"?"t-proc":"t-done"}">${esc(u.role)}</span></td><td>${u.last?new Date(u.last).toLocaleString("en-IN"):"–"}</td><td class="n"><button class="btn sm" data-p="${u.id}" data-e="${esc(u.email)}">Change password</button>${u.role==="admin"?"":` <button class="btn sm dng" data-x="${u.id}" data-e="${esc(u.email)}">Remove</button>`}</td></tr>`),emp("users","No staff yet","Use Add staff to create a login."));
+    $("#sl2").onclick=e=>{
+      const p=e.target.closest("[data-p]"),x=e.target.closest("[data-x]");
+      if(p)staffPw(p.dataset.p,p.dataset.e);
+      if(x&&confirm("Remove login for "+x.dataset.e+"? They will not be able to sign in again."))staffApi("delete",{id:x.dataset.x}).then(()=>{toast("Staff removed");staffPg()}).catch(er=>toast(er.message))
+    };ic()
+  }catch(er){$("#sl2").innerHTML=emp("alert-triangle","Staff manager is not ready",esc(er.message)+" - deploy the staff-admin function in Supabase (see setup steps).");ic()}
+}
+function staffAdd(){form("Add staff","Staff will sign in to the store app with this email and password.",[{k:"email",l:"Email *",t:"email",req:1,full:1},{k:"pw",l:"Password * (min 6 characters)",req:1,full:1}],"Create login",d=>{
+  if(!d.pw||d.pw.length<6)return toast("Password needs at least 6 characters");
+  staffApi("create",{email:d.email.trim().toLowerCase(),password:d.pw}).then(()=>{toast("Staff login created");if(location.hash==="#staff")staffPg()}).catch(er=>toast(er.message))})}
+function staffPw(id,email){form("Change password",esc(email),[{k:"pw",l:"New password * (min 6 characters)",req:1,full:1}],"Update password",d=>{
+  if(!d.pw||d.pw.length<6)return toast("Password needs at least 6 characters");
+  staffApi("password",{id,password:d.pw}).then(()=>toast("Password updated")).catch(er=>toast(er.message))})}
+
+/* ===== LOGIN (admin accounts only) ===== */
 function showLogin(done){
-  const acct=load(AK,null),first=!acct,L=$("#login");
+  const L=$("#login");
   document.querySelector(".shell").style.display="none";L.hidden=false;
-  L.innerHTML=`<form class="lcard" id="lf" autocomplete="on"><div class="llogo"><img src="allfa-logo.png" alt="Allfa"></div><div><h2>${first?"Create admin account":"Welcome back"}</h2><p>${first?"Set up your owner login":"Sign in to continue"}</p></div>
-  <div class="lf"><div class="lin"><i data-lucide="mail"></i><input id="le" type="email" placeholder="Gmail / Email" autocomplete="username" required></div>
-  <div class="lin"><i data-lucide="lock"></i><input id="lp" type="password" placeholder="Password" autocomplete="${first?"new-password":"current-password"}" minlength="6" required><button type="button" class="eye" id="ey" aria-label="Show password"><i data-lucide="eye"></i></button></div>
-  ${first?`<div class="lin"><i data-lucide="lock-keyhole"></i><input id="lp2" type="password" placeholder="Confirm password" autocomplete="new-password" required></div>`:""}
-  <div class="lrow"><label class="lchk"><input type="checkbox" id="lr">Remember me</label></div></div>
-  <p class="lerr" id="lx"></p><button class="lgo">${first?"Create account":"Login"}<i data-lucide="arrow-right"></i></button><div class="lfoot">ALLFA · ADMIN</div></form>`;
+  L.innerHTML=`<form class="lcard" id="lf" autocomplete="on"><div class="llogo"><img src="allfa-logo.png" alt="Allfa"></div><div><h2>Welcome back</h2><p>Owner login</p></div>
+  <div class="lf"><div class="lin"><i data-lucide="mail"></i><input id="le" type="email" placeholder="Admin email" autocomplete="username" required></div>
+  <div class="lin"><i data-lucide="lock"></i><input id="lp" type="password" placeholder="Password" autocomplete="current-password" required><button type="button" class="eye" id="ey" aria-label="Show password"><i data-lucide="eye"></i></button></div></div>
+  <p class="lerr" id="lx"></p><button class="lgo">Login<i data-lucide="arrow-right"></i></button><div class="lfoot">ALLFA · ADMIN</div></form>`;
   ic();$("#le").focus();
   $("#ey").onclick=()=>{const p=$("#lp"),s=p.type==="password";p.type=s?"text":"password";$("#ey").innerHTML=`<i data-lucide="${s?"eye-off":"eye"}"></i>`;ic()};
   $("#lf").onsubmit=async e=>{
-    e.preventDefault();const em=$("#le").value.trim().toLowerCase(),pw=$("#lp").value,x=$("#lx");x.textContent="";
-    if(first){if(pw.length<6)return x.textContent="Password needs at least 6 characters.";if(pw!==$("#lp2").value)return x.textContent="Passwords do not match.";
-      localStorage.setItem(AK,JSON.stringify({email:em,hash:await hp(pw)}))}
-    else if(em!==acct.email||await hp(pw)!==acct.hash)return x.textContent="Wrong email or password. Try again.";
-    ($("#lr").checked?localStorage:sessionStorage).setItem($("#lr").checked?RK:SK,1);
-    L.hidden=true;L.innerHTML="";document.querySelector(".shell").style.display="";done();
+    e.preventDefault();const x=$("#lx"),b=$("#lf .lgo");x.textContent="";b.disabled=true;
+    try{
+      const r=await sbAuth("token?grant_type=password",{email:$("#le").value.trim().toLowerCase(),password:$("#lp").value}),j=await r.json();
+      if(!r.ok||!j.access_token)return x.textContent="Wrong email or password. Try again.";
+      if(!j.user||!j.user.app_metadata||j.user.app_metadata.role!=="admin")return x.textContent="This account is not an admin account.";
+      setSession(j);L.hidden=true;L.innerHTML="";document.querySelector(".shell").style.display="";done()
+    }catch{x.textContent="No internet. Admin login needs internet the first time."}
+    finally{b.disabled=false}
   };
 }
 function init(){
+  const nav=document.querySelector("nav");
+  if(nav&&!nav.querySelector('[data-page="staff"]'))nav.insertAdjacentHTML("beforeend",'<a data-page="staff" href="#staff"><i data-lucide="users"></i>Staff logins</a>');
   $("#today").textContent=new Date().toLocaleDateString("en-IN",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   $("#menuBtn").onclick=()=>$("#side").classList.toggle("open");$("#modal").onclick=e=>{if(e.target.id==="modal")closeM()};document.onkeydown=e=>{if(e.key==="Escape")closeM()};
   $("#gq").oninput=()=>{reload();gsearch()};$("#gq").onfocus=()=>{if($("#gq").value)gsearch()};
   $("#gq").onkeydown=e=>{if(e.key==="Enter")gopen(0);if(e.key==="Escape"){$("#gq").value="";gsearch()}};
   $("#gres").onclick=e=>{const r=e.target.closest("[data-n]");if(r)gopen(+r.dataset.n)};
   document.addEventListener("click",e=>{if(!e.target.closest(".gs"))$("#gres").classList.remove("open")});
-  $("#lk").onclick=()=>{sessionStorage.removeItem(SK);localStorage.removeItem(RK);location.reload()};
+  $("#lk").onclick=signOut;
   $("#bk").onclick=()=>dl("e-sevai-backup-"+today()+".json",JSON.stringify({[KEY]:load(KEY,{}),[PK]:prices,[EK]:exps}),"application/json");
   $("#rs").onclick=()=>$("#rf").click();
-  $("#rf").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!confirm("Replace current data with this backup?"))return;for(const k of[KEY,PK,EK])if(j[k])localStorage.setItem(k,JSON.stringify(j[k]));go();toast("Backup restored")}catch{toast("Invalid backup file")}};
+  $("#rf").onchange=async e=>{try{const j=JSON.parse(await e.target.files[0].text());if(!confirm("Replace current data with this backup? This also replaces the cloud data for all devices."))return;
+    if(j[KEY]){j[KEY]._ts=Date.now();localStorage.setItem(KEY,JSON.stringify(j[KEY]));upsert("allfa-main",j[KEY])}
+    if(j[PK]){localStorage.setItem(PK,JSON.stringify(j[PK]));reload();cfgPush()}
+    if(j[EK]){localStorage.setItem(EK,JSON.stringify(j[EK]));reload();expPush()}
+    go();toast("Backup restored")}catch{toast("Invalid backup file")}};
   window.onhashchange=go;window.addEventListener("storage",go);window.addEventListener("focus",()=>{if($("#modal").className.indexOf("open")<0)go()});go();
+  cloudPull();setInterval(cloudPull,30000);
+  addEventListener("online",cloudPull);document.addEventListener("visibilitychange",()=>{if(!document.hidden)cloudPull()});
 }
-document.addEventListener("DOMContentLoaded",()=>authed()?init():showLogin(init));
+document.addEventListener("DOMContentLoaded",()=>{loadAuth();authed()?init():showLogin(init)});

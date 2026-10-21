@@ -1,4 +1,4 @@
-const CACHE = "allfa-admin-v1";
+const CACHE = "allfa-admin-v2";
 const SHELL = ["./","index.html","admin.css","admin.js","admin-manifest.json","admin-icon-192.png","admin-icon-512.png","allfa-logo.png","admin-favicon.png"];
 
 self.addEventListener("install", e => {
@@ -20,6 +20,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || !req.url.startsWith("http")) return;
+  if (req.url.includes(".supabase.co")) return; // never cache cloud data
 
   // Pages: network first (always fresh when online), cache when offline
   if (req.mode === "navigate") {
