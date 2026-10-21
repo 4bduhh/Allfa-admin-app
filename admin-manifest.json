@@ -1,9 +1,9 @@
 {
-  "id": "admin.html",
+  "id": "./",
   "name": "Allfa E-Sevai Admin",
   "short_name": "Allfa Admin",
   "description": "Allfa E-Sevai Maiyam owner admin dashboard",
-  "start_url": "admin.html",
+  "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
