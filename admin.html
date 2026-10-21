@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>E-Sevai Pro · Admin</title>
+<link rel="icon" type="image/png" href="admin-favicon.png">
+<link rel="manifest" href="admin-manifest.json">
+<meta name="theme-color" content="#234167">
+<link rel="apple-touch-icon" href="admin-apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Allfa Admin">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+Tamil:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+<script src="https://unpkg.com/lucide@0.468.0"></script>
+</head>
+<body>
+<div class="login" id="login" hidden></div>
+<div class="shell">
+  <aside class="side" id="side">
+    <div class="brand"><span class="mark"><i data-lucide="shield-check"></i></span><div><b>E-Sevai Admin</b><small>Owner access only</small></div></div>
+    <nav>
+      <a data-page="overview" href="#overview"><i data-lucide="chart-no-axes-combined"></i>Overview</a>
+      <a data-page="bills" href="#bills"><i data-lucide="receipt"></i>All bills</a>
+      <a data-page="prices" href="#prices"><i data-lucide="tags"></i>Price list</a>
+      <a data-page="docs" href="#docs"><i data-lucide="file-check-2"></i>Required documents</a>
+      <a data-page="expenses" href="#expenses"><i data-lucide="wallet"></i>Expenses</a>
+      <a href="store.html"><i data-lucide="arrow-left-right"></i>Store app</a>
+    </nav>
+    <div class="side-foot"><button class="ghost" id="bk"><i data-lucide="download"></i>Download backup</button><button class="ghost" id="rs" style="margin-top:8px"><i data-lucide="upload"></i>Restore backup</button><input type="file" id="rf" accept=".json" hidden><button class="ghost" id="lk" style="margin-top:8px"><i data-lucide="lock"></i>Lock</button></div>
+  </aside>
+  <main>
+    <header class="top"><button class="icon menu" id="menuBtn" aria-label="Menu"><i data-lucide="menu"></i></button><h1 id="title">Overview</h1><div class="gs"><i data-lucide="search"></i><input id="gq" placeholder="Search bills, customers, services, expenses…" autocomplete="off"><div class="gres" id="gres"></div></div><div class="top-r"><span id="today"></span><button class="btn pri" id="topNew"></button></div></header>
+    <div class="view" id="view"></div>
+  </main>
+</div>
+<div class="modal" id="modal"><form id="mform"></form></div>
+<div class="toast" id="toast"></div>
+<script src="admin.js"></script>
+<script>if("serviceWorker"in navigator)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))</script>
+</body>
+</html>
