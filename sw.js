@@ -1,5 +1,5 @@
 const CACHE = "allfa-esevai-v2";
-const SHELL = ["store.html","store.css","store.js","manifest.json","icon-192.png","icon-512.png","allfa-logo-purple.png","favicon.png",
+const SHELL = ["index.html","store.css","store.js","manifest.json","icon-192.png","icon-512.png","allfa-logo-purple.png","favicon.png",
   "admin.html","admin.css","admin.js","admin-manifest.json","admin-icon-192.png","admin-icon-512.png","allfa-logo.png","admin-favicon.png"];
 
 self.addEventListener("install", e => {
