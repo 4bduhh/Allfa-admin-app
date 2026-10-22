@@ -34,7 +34,23 @@ self.addEventListener("fetch", e => {
     return;
   }
 
-  // Everything else: serve from cache, refresh in background
+  // Same-site files (html/css/js/images): network first, so every push shows up right away.
+  // The cache is only the offline fallback.
+  if (new URL(req.url).origin === self.location.origin) {
+    e.respondWith(
+      fetch(req, { cache: "no-cache" }).then(res => {
+        if (res && res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
+        }
+        return res;
+      }).catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // Third-party (fonts, icon library): cache first, refresh in background
+
   e.respondWith(
     caches.match(req).then(cached => {
       const net = fetch(req).then(res => {
