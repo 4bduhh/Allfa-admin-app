@@ -45,7 +45,7 @@ label{display:grid;gap:6px;font-size:13px;font-weight:500;color:#3d4658}
 .gs{position:relative;flex:1;max-width:480px;margin-left:12px}.gs>svg{position:absolute;left:16px;top:12px;width:18px;color:var(--mut);pointer-events:none}.gs input{height:44px;padding-left:44px;border-radius:22px;background:#f4f6fa}
 .gres{display:none;position:absolute;top:52px;left:0;right:0;background:#fff;border-radius:20px;box-shadow:var(--sh),0 0 0 1px #e8ecf3;padding:8px;z-index:40;max-height:70vh;overflow:auto}.gres.open{display:block}
 .gr{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;cursor:pointer}.gr:hover,.gr.f{background:#f1f4f9}.gr svg{width:18px;color:var(--nav);flex-shrink:0}.gr b{display:block;font-weight:500}.gr small{color:var(--mut)}.gn{padding:14px;color:var(--mut);text-align:center}
-@media(max-width:700px){.gs{max-width:none}.top-r .btn{display:none}}
+
 /* ---- Login (neumorphic) ---- */
 .login{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:20px;overflow:auto;background:radial-gradient(circle at 12% 8%,#fff 0,#e9effb 45%,#dfe8f8 100%)}.login[hidden]{display:none}
 .login::before,.login::after{content:"";position:absolute;border-radius:50%;background:linear-gradient(145deg,#f4f7ff,#cfdcf5);box-shadow:12px 12px 28px #c5d2ea,-12px -12px 28px #fff;pointer-events:none}
@@ -73,3 +73,23 @@ label{display:grid;gap:6px;font-size:13px;font-weight:500;color:#3d4658}
 /* daily collections: green bars */
 .bar i{background:var(--grn)}
 .bar.today i{background:#7f9a3e;box-shadow:0 0 0 3px #4e5d2a inset}
+/* ---- Mobile: keep every option (Add button, full table data) ---- */
+@media(max-width:700px){
+  .top{height:auto;flex-wrap:wrap;padding:12px 16px;gap:10px}
+  .top h1{font-size:16px;color:var(--ink);font-weight:600}
+  .top-r{margin-left:auto}
+  .top-r .btn{height:40px;padding:0 16px}
+  .gs{order:3;flex:1 1 100%;max-width:none;margin:0}
+  .gres{top:50px}
+  .tw{overflow:visible}
+  table,thead,tbody,tr,td{display:block}
+  thead{display:none}
+  table{border-spacing:0;white-space:normal}
+  tr{background:var(--bg);border-radius:20px;box-shadow:var(--shs);padding:8px 16px;margin-bottom:14px}
+  td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:6px 0;background:none;box-shadow:none;border-radius:0!important;text-align:right!important;white-space:normal;min-width:0!important;word-break:break-word}
+  td::before{content:attr(data-l);color:var(--mut);font-size:12px;font-weight:500;text-align:left;flex-shrink:0}
+  td:first-child{justify-content:flex-start;text-align:left!important;font-size:15px;padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid #eef1f6}
+  td:first-child::before{display:none}
+  td[data-l=""]{justify-content:flex-end;flex-wrap:wrap;gap:8px;padding-top:10px}
+  td[data-l=""]::before{display:none}
+}

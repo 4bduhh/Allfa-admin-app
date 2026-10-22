@@ -21,7 +21,7 @@ const RN=[["No reminder",0],["After 6 months",6],["After 1 year",12],["After 2 y
 const savT=()=>{const cur=load(KEY,{});cur.tpl=db.tpl;localStorage.setItem(KEY,JSON.stringify(cur));cfgPush()};
 const toast=m=>{const t=$("#toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2500)};
 const emp=(i,t,s)=>`<div class="empty"><i data-lucide="${i}"></i><b>${t}</b>${s}</div>`;
-const tbl=(h,rows,e)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th class="${x[0]==="#"?"n":""}">${x.replace("#","")}</th>`).join("")}</tr></thead><tbody>${rows.join("")}</tbody></table></div>`:e;
+const tbl=(h,rows,e)=>rows.length?`<div class="tw"><table><thead><tr>${h.map(x=>`<th class="${x[0]==="#"?"n":""}">${x.replace("#","")}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>{let i=0;return r.replace(/<td/g,()=>`<td data-l="${esc(String(h[i++]||"").replace("#",""))}"`)}).join("")}</tbody></table></div>`:e;
 const closeM=()=>$("#modal").classList.remove("open");
 function form(title,sub,fields,ok,fn){
   $("#mform").innerHTML=`<h2>${title}</h2><p class="sub">${sub}</p><div class="fg">${fields.map(f=>`<label class="${f.full?"full":""}">${f.l}${f.t==="area"?`<textarea name="${f.k}" rows="${f.r||4}">${esc(f.v??"")}</textarea>`:f.t==="select"?`<select name="${f.k}">${f.o.map(o=>`<option ${o===f.v?"selected":""}>${esc(o)}</option>`).join("")}</select>`:`<input name="${f.k}" type="${f.t||"text"}" value="${esc(f.v??"")}" ${f.req?"required":""} ${f.t==="number"?'min="0" step="any"':""}>`}</label>`).join("")}</div><div class="ma"><button type="button" class="btn" id="mc">Cancel</button><button class="btn pri">${ok}</button></div>`;

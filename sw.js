@@ -1,4 +1,4 @@
-const CACHE = "allfa-admin-v2";
+const CACHE = "allfa-admin-v3";
 const SHELL = ["./","index.html","admin.css","admin.js","admin-manifest.json","admin-icon-192.png","admin-icon-512.png","allfa-logo.png","admin-favicon.png"];
 
 self.addEventListener("install", e => {
